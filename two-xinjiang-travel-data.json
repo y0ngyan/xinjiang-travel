@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-01T14:52:34.127Z",
+  "generatedAt": "2026-06-01T15:14:51.568Z",
   "mapCenter": [
     84.8,
     44.9
@@ -11,6 +11,7 @@
   "notes": [
     "旅游团住宿来自攻略原文参考酒店。",
     "自驾住宿为高德 POI 按当天落脚地附近推荐，供地图规划参考，不代表预订建议。",
+    "美食点位来自用户补充攻略，部分泛称美食使用城市中心或人工锚点，建议出行前核对具体门店。",
     "截图中不清晰的地点已保留待核对提示。"
   ],
   "routes": {
@@ -701790,5 +701791,379 @@
         ]
       ]
     }
-  }
+  },
+  "foodPois": [
+    {
+      "name": "海尔巴格",
+      "city": "乌鲁木齐",
+      "category": "recommend",
+      "sources": [
+        "用户补充路线"
+      ],
+      "note": "好吃不贵",
+      "id": "乌鲁木齐-海尔巴格",
+      "amapName": "海尔巴格",
+      "location": [
+        87.617526,
+        43.826021
+      ],
+      "source": "manual-food-anchor",
+      "address": "",
+      "kind": "food"
+    },
+    {
+      "name": "味云轩",
+      "city": "禾木",
+      "category": "recommend",
+      "sources": [
+        "用户补充路线"
+      ],
+      "note": "味美价优",
+      "id": "禾木-味云轩",
+      "amapName": "味云轩",
+      "location": [
+        87.433144,
+        48.578326
+      ],
+      "source": "manual-food-anchor",
+      "address": "",
+      "kind": "food"
+    },
+    {
+      "name": "羊里脊抓饭",
+      "city": "布尔津",
+      "category": "recommend",
+      "sources": [
+        "用户补充路线"
+      ],
+      "note": "好吃要排队",
+      "id": "布尔津-羊里脊抓饭",
+      "amapName": "羊里脊抓饭",
+      "location": [
+        86.875043,
+        47.701892
+      ],
+      "source": "manual-food-anchor",
+      "address": "",
+      "kind": "food"
+    },
+    {
+      "name": "天山集市丝路盛宴",
+      "city": "克拉玛依",
+      "category": "recommend",
+      "sources": [
+        "用户补充路线"
+      ],
+      "note": "好吃价优",
+      "id": "克拉玛依-天山集市丝路盛宴",
+      "amapName": "天山集市丝路盛宴",
+      "location": [
+        84.889207,
+        45.579889
+      ],
+      "source": "manual-food-anchor",
+      "address": "",
+      "kind": "food"
+    },
+    {
+      "name": "艾力烧烤",
+      "city": "奎屯",
+      "category": "recommend",
+      "sources": [
+        "用户补充路线"
+      ],
+      "note": "缸子肉好吃",
+      "id": "奎屯-艾力烧烤",
+      "amapName": "艾力烧烤",
+      "location": [
+        84.903216,
+        44.426452
+      ],
+      "source": "manual-food-anchor",
+      "address": "",
+      "kind": "food"
+    },
+    {
+      "name": "楼兰秘烤",
+      "city": "乌鲁木齐",
+      "category": "avoid",
+      "sources": [
+        "用户补充路线"
+      ],
+      "note": "无功无过，机场附近店 23 点打烊",
+      "id": "乌鲁木齐-楼兰秘烤",
+      "amapName": "楼兰秘烤",
+      "location": [
+        87.474244,
+        43.907106
+      ],
+      "source": "manual-food-anchor",
+      "address": "",
+      "kind": "food"
+    },
+    {
+      "name": "可爱的新疆",
+      "city": "禾木",
+      "category": "avoid",
+      "sources": [
+        "用户补充路线"
+      ],
+      "note": "菜贵，味道还行",
+      "id": "禾木-可爱的新疆",
+      "amapName": "可爱的新疆",
+      "location": [
+        87.433144,
+        48.578326
+      ],
+      "source": "manual-food-anchor",
+      "address": "",
+      "kind": "food"
+    },
+    {
+      "name": "小龙坎",
+      "city": "白哈巴",
+      "category": "avoid",
+      "sources": [
+        "用户补充路线"
+      ],
+      "note": "卫生差、价格贵、服务差",
+      "id": "白哈巴-小龙坎",
+      "amapName": "小龙坎",
+      "location": [
+        86.420821,
+        48.060846
+      ],
+      "source": "manual-food-anchor",
+      "address": "",
+      "kind": "food"
+    },
+    {
+      "name": "天子烤包",
+      "city": "克拉玛依",
+      "category": "recommend",
+      "sources": [
+        "用户补充路线"
+      ],
+      "recommendedDish": "烤包子",
+      "note": "一口惊艳，开酥包子皮很香",
+      "id": "克拉玛依-天子烤包",
+      "amapName": "天子烤包",
+      "location": [
+        84.889207,
+        45.579889
+      ],
+      "source": "manual-food-anchor",
+      "address": "",
+      "kind": "food"
+    },
+    {
+      "name": "一把抓",
+      "city": "伊宁",
+      "category": "recommend",
+      "sources": [
+        "用户补充路线"
+      ],
+      "recommendedDish": "一把抓",
+      "note": "薄死面，像煎饺口感但不油",
+      "id": "伊宁-一把抓",
+      "amapName": "一把抓",
+      "location": [
+        81.277715,
+        43.908021
+      ],
+      "source": "manual-food-anchor",
+      "address": "",
+      "kind": "food"
+    },
+    {
+      "name": "烤包子王",
+      "city": "特克斯八卦城",
+      "category": "recommend",
+      "sources": [
+        "用户补充路线"
+      ],
+      "recommendedDish": "烤包子",
+      "note": "排队也值得",
+      "id": "特克斯八卦城-烤包子王",
+      "amapName": "烤包子王",
+      "location": [
+        81.836206,
+        43.218066
+      ],
+      "source": "manual-food-anchor",
+      "address": "",
+      "kind": "food"
+    },
+    {
+      "name": "阿帕的奶茶店",
+      "city": "特克斯八卦城",
+      "category": "recommend",
+      "sources": [
+        "用户补充路线"
+      ],
+      "recommendedDish": "咸奶茶、包尔萨克",
+      "note": "咸奶茶香，包尔萨克蘸果酱是重点",
+      "id": "特克斯八卦城-阿帕的奶茶店",
+      "amapName": "阿帕的奶茶店",
+      "location": [
+        81.836206,
+        43.218066
+      ],
+      "source": "manual-food-anchor",
+      "address": "",
+      "kind": "food"
+    },
+    {
+      "name": "歹歹的辣皮子拌面",
+      "city": "布尔津",
+      "category": "recommend",
+      "sources": [
+        "用户补充路线"
+      ],
+      "recommendedDish": "过油肉拌面",
+      "note": "过油肉拌面印象深",
+      "id": "布尔津-歹歹的辣皮子拌面",
+      "amapName": "歹歹的辣皮子拌面",
+      "location": [
+        86.875043,
+        47.701892
+      ],
+      "source": "manual-food-anchor",
+      "address": "",
+      "kind": "food"
+    },
+    {
+      "name": "葡萄树乳酪包",
+      "city": "乌鲁木齐",
+      "category": "recommend",
+      "sources": [
+        "用户补充路线"
+      ],
+      "recommendedDish": "乳酪包",
+      "note": "乳酪包参考点，需核对具体门店",
+      "id": "乌鲁木齐-葡萄树乳酪包",
+      "amapName": "葡萄树乳酪包",
+      "location": [
+        87.616824,
+        43.825377
+      ],
+      "source": "manual-food-anchor",
+      "address": "",
+      "kind": "food"
+    },
+    {
+      "name": "正飞乳酪包",
+      "city": "乌鲁木齐",
+      "category": "recommend",
+      "sources": [
+        "用户补充路线"
+      ],
+      "recommendedDish": "乳酪包",
+      "note": "奶味更浓，需核对具体门店",
+      "id": "乌鲁木齐-正飞乳酪包",
+      "amapName": "正飞乳酪包",
+      "location": [
+        87.616824,
+        43.825377
+      ],
+      "source": "manual-food-anchor",
+      "address": "",
+      "kind": "food"
+    },
+    {
+      "name": "奔跑的肉饼子",
+      "city": "精河",
+      "category": "recommend",
+      "sources": [
+        "用户补充路线"
+      ],
+      "recommendedDish": "羊肉馅饼",
+      "note": "中式羊肉馅披萨，刚出炉脆皮好吃",
+      "id": "精河-奔跑的肉饼子",
+      "amapName": "奔跑的肉饼子",
+      "location": [
+        82.894191,
+        44.600802
+      ],
+      "source": "manual-food-anchor",
+      "address": "",
+      "kind": "food"
+    },
+    {
+      "name": "品丰抓饭",
+      "city": "伊宁",
+      "category": "recommend",
+      "sources": [
+        "用户补充路线"
+      ],
+      "recommendedDish": "手抓饭",
+      "note": "羊肉不膻，自助奶茶也不错",
+      "id": "伊宁-品丰抓饭",
+      "amapName": "品丰抓饭",
+      "location": [
+        81.277715,
+        43.908021
+      ],
+      "source": "manual-food-anchor",
+      "address": "",
+      "kind": "food"
+    },
+    {
+      "name": "白而开肉馕",
+      "city": "乌鲁木齐",
+      "category": "recommend",
+      "sources": [
+        "用户补充路线"
+      ],
+      "recommendedDish": "肉馕",
+      "note": "比较少见的肉馕",
+      "id": "乌鲁木齐-白而开肉馕",
+      "amapName": "白而开肉馕",
+      "location": [
+        87.616824,
+        43.825377
+      ],
+      "source": "manual-food-anchor",
+      "address": "",
+      "kind": "food"
+    },
+    {
+      "name": "新疆烤包子",
+      "city": "乌鲁木齐",
+      "category": "general",
+      "sources": [
+        "用户补充路线"
+      ],
+      "recommendedDish": "烤包子",
+      "note": "泛称美食，按乌鲁木齐中心点标注",
+      "id": "乌鲁木齐-新疆烤包子",
+      "amapName": "戈壁郎烤包子",
+      "location": [
+        87.685808,
+        43.97006
+      ],
+      "source": "amap-food-poi",
+      "address": "府前东路与米东北路交叉口西北140米",
+      "kind": "food"
+    },
+    {
+      "name": "新疆路边馕",
+      "city": "乌鲁木齐",
+      "category": "general",
+      "sources": [
+        "用户补充路线"
+      ],
+      "recommendedDish": "馕",
+      "note": "泛称美食，按乌鲁木齐中心点标注",
+      "id": "乌鲁木齐-新疆路边馕",
+      "amapName": "戈壁郎烤包子",
+      "location": [
+        87.685808,
+        43.97006
+      ],
+      "source": "amap-food-poi",
+      "address": "府前东路与米东北路交叉口西北140米",
+      "kind": "food"
+    }
+  ]
 }

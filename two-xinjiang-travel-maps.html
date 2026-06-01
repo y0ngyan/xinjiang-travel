@@ -13,6 +13,9 @@
       --self: #b54708;
       --self-dark: #7a2e05;
       --hotel: #9b1c1c;
+      --food: #157f3b;
+      --food-avoid: #b42318;
+      --food-general: #6a329f;
       --panel: #ffffff;
       --text: #1f2933;
       --muted: #667085;
@@ -117,7 +120,7 @@
 
     .secondary-actions {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 6px;
     }
 
@@ -175,6 +178,10 @@
       height: 13px;
       border-radius: 4px;
       background: var(--hotel);
+    }
+
+    .legend-dot.food {
+      background: var(--food);
     }
 
     .day-list {
@@ -243,6 +250,54 @@
       line-height: 1.45;
     }
 
+    .food-section {
+      padding: 12px;
+      border-top: 1px solid var(--line);
+      background: #fbfcfd;
+    }
+
+    .food-section[hidden] {
+      display: none;
+    }
+
+    .food-list {
+      display: grid;
+      gap: 7px;
+      max-height: 210px;
+      overflow: auto;
+    }
+
+    .food-card {
+      width: 100%;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-left: 5px solid var(--food);
+      border-radius: 8px;
+      background: #fff;
+      text-align: left;
+    }
+
+    .food-card.avoid {
+      border-left-color: var(--food-avoid);
+    }
+
+    .food-card.general {
+      border-left-color: var(--food-general);
+    }
+
+    .food-card strong {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 13px;
+      line-height: 1.3;
+    }
+
+    .food-card span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
     .map-wrap {
       position: relative;
       min-width: 0;
@@ -292,6 +347,21 @@
       border-radius: 8px;
       background: var(--hotel);
       font-size: 13px;
+    }
+
+    .marker.food {
+      min-width: 34px;
+      border-radius: 10px;
+      background: var(--food);
+      font-size: 13px;
+    }
+
+    .marker.food.avoid {
+      background: var(--food-avoid);
+    }
+
+    .marker.food.general {
+      background: var(--food-general);
     }
 
     .info {
@@ -376,6 +446,7 @@
         </div>
         <div class="secondary-actions" role="group" aria-label="辅助显示">
           <button type="button" class="active" id="toggle-hotels">住宿</button>
+          <button type="button" class="active" id="toggle-food">美食</button>
           <button type="button" id="toggle-satellite">卫星</button>
           <button type="button" id="fit-view">全览</button>
         </div>
@@ -386,6 +457,10 @@
       </section>
 
       <section class="day-list" id="day-list" aria-label="每日行程"></section>
+      <section class="food-section" id="food-section" aria-label="美食列表">
+        <div class="route-title">美食 <span id="food-count">0 个</span></div>
+        <div class="food-list" id="food-list"></div>
+      </section>
     </aside>
 
     <section class="map-wrap">
@@ -398,6 +473,7 @@
     const appState = {
       mode: 'all',
       showHotels: true,
+      showFood: true,
       satellite: false,
       data: null,
       AMap: null,
@@ -406,6 +482,7 @@
       overlays: {
         routes: {},
         hotels: [],
+        food: [],
         satellite: null,
         roadNet: null
       },
@@ -511,6 +588,38 @@
           ${hotel.distance ? `<div>距当天落脚点约 ${Math.round(hotel.distance)}m</div>` : ''}
           ${hotel.alternatives && hotel.alternatives.length ? `<div>备选：${hotel.alternatives.map(escapeHtml).join('、')}</div>` : ''}
           <div>来源：${escapeHtml(hotel.source || '攻略')}</div>
+        </div>
+      `;
+    }
+
+    function foodCategoryLabel(category) {
+      return {
+        recommend: '推荐',
+        avoid: '避雷',
+        general: '泛称'
+      }[category] || '美食';
+    }
+
+    function foodColor(category) {
+      return {
+        recommend: '#157f3b',
+        avoid: '#b42318',
+        general: '#6a329f'
+      }[category] || '#157f3b';
+    }
+
+    function createFoodInfo(food) {
+      return `
+        <div class="info">
+          <span class="tag">美食</span>
+          <span class="tag">${escapeHtml(foodCategoryLabel(food.category))}</span>
+          <h3>${escapeHtml(food.name)}</h3>
+          <div>城市：${escapeHtml(food.city)}</div>
+          ${food.recommendedDish ? `<div>推荐：${escapeHtml(food.recommendedDish)}</div>` : ''}
+          ${food.note ? `<div>备注：${escapeHtml(food.note)}</div>` : ''}
+          ${food.address ? `<div>地址：${escapeHtml(food.address)}</div>` : ''}
+          <div>来源：${escapeHtml(food.sources.join('、'))}</div>
+          <div>定位：${escapeHtml(food.source)}</div>
         </div>
       `;
     }
@@ -632,7 +741,7 @@
           </span>
         `;
       }).join('');
-      container.innerHTML = `${routeItems}<span class="legend-item"><span class="legend-dot hotel"></span>住宿/推荐酒店</span>`;
+      container.innerHTML = `${routeItems}<span class="legend-item"><span class="legend-dot hotel"></span>住宿/推荐酒店</span><span class="legend-item"><span class="legend-dot food"></span>美食</span>`;
     }
 
     function addRoute(routeId) {
@@ -711,6 +820,24 @@
       appState.map.add(overlays);
     }
 
+    function addFoodPois() {
+      const AMap = appState.AMap;
+      const overlays = (appState.data.foodPois || []).map((food) => {
+        const marker = new AMap.Marker({
+          position: food.location,
+          content: markerHtml(`food ${food.category}`, food.category === 'avoid' ? '避' : '食', foodColor(food.category)),
+          offset: new AMap.Pixel(-17, -17),
+          title: `美食 ${food.city} ${food.name}`,
+          zIndex: 170,
+          extData: { kind: 'food', foodId: food.id }
+        });
+        marker.on('click', () => openInfo(createFoodInfo(food), food.location));
+        return marker;
+      });
+      appState.overlays.food = overlays;
+      appState.map.add(overlays);
+    }
+
     function applyVisibility() {
       appState.routeIds.forEach((routeId) => {
         const visible = routeVisible(routeId);
@@ -730,12 +857,18 @@
         setOverlayVisible(overlay, Boolean(appState.showHotels && routeOk && dayMatches));
       });
 
+      appState.overlays.food.forEach((overlay) => {
+        setOverlayVisible(overlay, appState.showFood);
+      });
+
       document.querySelectorAll('[data-mode]').forEach((button) => {
         button.classList.toggle('active', button.dataset.mode === appState.mode);
       });
       document.getElementById('toggle-hotels').classList.toggle('active', appState.showHotels);
+      document.getElementById('toggle-food').classList.toggle('active', appState.showFood);
       document.getElementById('toggle-satellite').classList.toggle('active', appState.satellite);
       renderDayList();
+      renderFoodList();
     }
 
     function clearFocusedDay() {
@@ -768,6 +901,12 @@
         });
         visible.push(...visibleHotels);
         visibleHotels.forEach((overlay) => {
+          const position = overlay.getPosition && overlay.getPosition();
+          if (position) points.push([position.lng, position.lat]);
+        });
+      }
+      if (appState.showFood) {
+        appState.overlays.food.forEach((overlay) => {
           const position = overlay.getPosition && overlay.getPosition();
           if (position) points.push([position.lng, position.lat]);
         });
@@ -847,6 +986,29 @@
       });
     }
 
+    function renderFoodList() {
+      const section = document.getElementById('food-section');
+      const list = document.getElementById('food-list');
+      const count = document.getElementById('food-count');
+      const foods = appState.data.foodPois || [];
+      section.hidden = !appState.showFood;
+      count.textContent = `${foods.length} 个`;
+      list.innerHTML = foods.map((food) => `
+        <button type="button" class="food-card ${escapeHtml(food.category)}" data-food-id="${escapeHtml(food.id)}">
+          <strong>${escapeHtml(food.name)}</strong>
+          <span>${escapeHtml(food.city)} · ${escapeHtml(foodCategoryLabel(food.category))}${food.recommendedDish ? ` · ${escapeHtml(food.recommendedDish)}` : ''}</span>
+        </button>
+      `).join('');
+      list.querySelectorAll('.food-card').forEach((card) => {
+        card.addEventListener('click', () => {
+          const food = foods.find((item) => item.id === card.dataset.foodId);
+          if (!food) return;
+          appState.map.setZoomAndCenter(Math.max(appState.map.getZoom(), 10), food.location);
+          openInfo(createFoodInfo(food), food.location);
+        });
+      });
+    }
+
     function focusDay(routeId, dayId) {
       const route = appState.data.routes[routeId];
       const day = route.days.find((item) => item.day === dayId);
@@ -887,6 +1049,11 @@
 
       document.getElementById('toggle-hotels').addEventListener('click', () => {
         appState.showHotels = !appState.showHotels;
+        applyVisibility();
+      });
+
+      document.getElementById('toggle-food').addEventListener('click', () => {
+        appState.showFood = !appState.showFood;
         applyVisibility();
       });
 
@@ -989,6 +1156,7 @@
 
         appState.routeIds.forEach(addRoute);
         appState.map.add(appState.overlays.hotels);
+        addFoodPois();
 
         bindControls();
         bindMapWheelFallback();
