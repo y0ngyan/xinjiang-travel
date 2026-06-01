@@ -1001,7 +1001,7 @@
           }).join('');
           return `
             <div class="route-section">
-              <div class="route-title">${escapeHtml(route.name)} <span>${route.days.length} 天</span></div>
+              <div class="route-title">${escapeHtml(route.label || route.name)} <span>${escapeHtml(route.name)} · ${route.days.length} 天</span></div>
               ${cards}
             </div>
           `;
@@ -1187,7 +1187,7 @@
         renderStats();
         applyVisibility();
         fitVisible();
-        setStatus('已加载：旅游团路线、图片自驾路线、12 日反向自驾路线、真实驾车道路、攻略住宿和高德 POI 推荐酒店。');
+        setStatus(`已加载：${appState.routeIds.map(routeLabel).join('、')}，真实驾车道路、攻略住宿和高德 POI 推荐酒店。`);
       } catch (error) {
         console.error(error);
         setStatus(error.message || '地图初始化失败', true);
