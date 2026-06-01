@@ -1,0 +1,986 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>新疆两份旅行攻略可视化地图</title>
+  <script src="./two-xinjiang-travel-runtime-config.js"></script>
+  <script src="https://webapi.amap.com/loader.js"></script>
+  <style>
+    :root {
+      --guided: #176b87;
+      --guided-dark: #0f4d61;
+      --self: #b54708;
+      --self-dark: #7a2e05;
+      --hotel: #9b1c1c;
+      --panel: #ffffff;
+      --text: #1f2933;
+      --muted: #667085;
+      --line: #d0d5dd;
+      --bg: #f3f6f8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      letter-spacing: 0;
+    }
+
+    body {
+      overflow: hidden;
+    }
+
+    .app-shell {
+      display: grid;
+      grid-template-columns: minmax(340px, 420px) 1fr;
+      height: 100vh;
+      max-height: 100vh;
+      min-height: 620px;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      border-right: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    .sidebar-header {
+      padding: 18px 18px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 22px;
+      line-height: 1.25;
+      font-weight: 760;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .controls {
+      display: grid;
+      gap: 10px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcfd;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    button {
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #344054;
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      transition: border-color .18s, background .18s, color .18s, transform .18s;
+    }
+
+    button:hover {
+      border-color: #98a2b3;
+      transform: translateY(-1px);
+    }
+
+    button.active {
+      color: #fff;
+      background: #1f2937;
+      border-color: #1f2937;
+    }
+
+    .secondary-actions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .stat {
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .legend-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      box-shadow: 0 0 0 1px rgba(0,0,0,.16);
+      flex: none;
+    }
+
+    .legend-dot.guided {
+      background: var(--guided);
+    }
+
+    .legend-dot.self {
+      background: var(--self);
+    }
+
+    .legend-dot.hotel {
+      width: 13px;
+      height: 13px;
+      border-radius: 4px;
+      background: var(--hotel);
+    }
+
+    .day-list {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      padding: 12px;
+    }
+
+    .route-section + .route-section {
+      margin-top: 14px;
+    }
+
+    .route-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 4px 8px;
+      font-size: 13px;
+      font-weight: 720;
+    }
+
+    .route-title span {
+      color: var(--muted);
+      font-weight: 520;
+    }
+
+    .day-card {
+      width: 100%;
+      margin: 0 0 8px;
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      border-left: 5px solid var(--guided);
+      border-radius: 8px;
+      background: #fff;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .day-card.selfDrive {
+      border-left-color: var(--self);
+    }
+
+    .day-card:hover,
+    .day-card.selected {
+      border-color: #667085;
+      box-shadow: 0 7px 16px rgba(16, 24, 40, .10);
+      transform: none;
+    }
+
+    .day-card h2 {
+      margin: 0 0 6px;
+      font-size: 14px;
+      line-height: 1.35;
+      font-weight: 740;
+    }
+
+    .day-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .hotel-line {
+      margin-top: 7px;
+      color: #7a271a;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .map-wrap {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    .map-status {
+      position: absolute;
+      left: 16px;
+      top: 16px;
+      z-index: 10;
+      max-width: min(520px, calc(100% - 32px));
+      padding: 10px 12px;
+      border: 1px solid rgba(102,112,133,.28);
+      border-radius: 8px;
+      background: rgba(255,255,255,.94);
+      color: #344054;
+      font-size: 13px;
+      box-shadow: 0 12px 30px rgba(16,24,40,.14);
+    }
+
+    .marker {
+      display: grid;
+      place-items: center;
+      min-width: 30px;
+      height: 30px;
+      padding: 0 7px;
+      border: 2px solid #fff;
+      border-radius: 999px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 780;
+      box-shadow: 0 4px 12px rgba(16,24,40,.24);
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .marker.guided {
+      background: var(--guided);
+    }
+
+    .marker.selfDrive {
+      background: var(--self);
+    }
+
+    .marker.hotel {
+      min-width: 34px;
+      border-radius: 8px;
+      background: var(--hotel);
+      font-size: 13px;
+    }
+
+    .marker.selfDrive.hotel {
+      background: #6a329f;
+    }
+
+    .info {
+      max-width: 330px;
+      padding: 2px 0;
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .info h3 {
+      margin: 0 0 6px;
+      font-size: 15px;
+      line-height: 1.35;
+    }
+
+    .info .tag {
+      display: inline-block;
+      margin: 0 4px 7px 0;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: #eef4ff;
+      color: #3538cd;
+      font-size: 12px;
+    }
+
+    .info ul {
+      margin: 6px 0 0;
+      padding-left: 18px;
+    }
+
+    .info li {
+      margin: 3px 0;
+    }
+
+    .warning {
+      margin-top: 6px;
+      color: #93370d;
+      font-size: 12px;
+    }
+
+    .loading-error {
+      color: #b42318;
+    }
+
+    @media (max-width: 900px) {
+      body {
+        overflow: auto;
+      }
+
+      .app-shell {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(420px, 52vh) auto;
+        height: auto;
+        min-height: 100vh;
+      }
+
+      .map-wrap {
+        grid-row: 1;
+        min-height: 420px;
+      }
+
+      .sidebar {
+        grid-row: 2;
+        border-right: 0;
+        border-top: 1px solid var(--line);
+        min-height: 50vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <aside class="sidebar">
+      <header class="sidebar-header">
+        <h1>新疆两份攻略路线地图</h1>
+        <p class="subtitle">旅游团住宿使用攻略原文；自驾住宿为高德 POI 按每日落脚地附近推荐。点击地图点或每日卡片查看详情。</p>
+      </header>
+
+      <section class="controls" aria-label="地图控制">
+        <div class="segmented" role="group" aria-label="路线显示">
+          <button type="button" class="active" data-mode="both">双路线</button>
+          <button type="button" data-mode="guided">旅游团</button>
+          <button type="button" data-mode="selfDrive">自驾</button>
+        </div>
+        <div class="secondary-actions" role="group" aria-label="辅助显示">
+          <button type="button" class="active" id="toggle-hotels">住宿</button>
+          <button type="button" id="toggle-satellite">卫星</button>
+          <button type="button" id="fit-view">全览</button>
+        </div>
+        <div class="stats" id="stats"></div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot guided"></span>旅游团景点</span>
+          <span class="legend-item"><span class="legend-dot self"></span>自驾景点</span>
+          <span class="legend-item"><span class="legend-dot hotel"></span>住宿/推荐酒店</span>
+        </div>
+      </section>
+
+      <section class="day-list" id="day-list" aria-label="每日行程"></section>
+    </aside>
+
+    <section class="map-wrap">
+      <div id="map" aria-label="高德旅行地图"></div>
+      <div class="map-status" id="map-status">正在加载高德地图和行程数据...</div>
+    </section>
+  </main>
+
+  <script>
+    const appState = {
+      mode: 'both',
+      showHotels: true,
+      satellite: false,
+      data: null,
+      AMap: null,
+      map: null,
+      overlays: {
+        guided: [],
+        selfDrive: [],
+        hotels: [],
+        satellite: null,
+        roadNet: null
+      },
+      selectedCard: null,
+      focusedDay: null,
+      infoWindow: null
+    };
+
+    const routeLabels = {
+      guided: '旅游团',
+      selfDrive: '自驾'
+    };
+
+    const routeClass = {
+      guided: 'guided',
+      selfDrive: 'selfDrive'
+    };
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      })[char]);
+    }
+
+    function setStatus(message, isError = false) {
+      const el = document.getElementById('map-status');
+      el.textContent = message;
+      el.classList.toggle('loading-error', isError);
+    }
+
+    function routeVisible(routeId) {
+      return appState.mode === 'both' || appState.mode === routeId;
+    }
+
+    function markerHtml(className, text) {
+      return `<div class="marker ${className}">${escapeHtml(text)}</div>`;
+    }
+
+    function createStopInfo(routeId, day, stop, index) {
+      return `
+        <div class="info">
+          <span class="tag">${escapeHtml(routeLabels[routeId])}</span>
+          <span class="tag">${escapeHtml(day.day)} · 第 ${index + 1} 站</span>
+          <h3>${escapeHtml(stop.name)}</h3>
+          <div>${escapeHtml(day.title)}</div>
+          <div>车程备注：${escapeHtml(day.distanceNote || '无')}</div>
+          ${day.meals ? `<div>用餐：${escapeHtml(day.meals)}</div>` : ''}
+          ${stop.address ? `<div>地址：${escapeHtml(stop.address)}</div>` : ''}
+          ${day.warnings ? day.warnings.map((item) => `<div class="warning">待核对：${escapeHtml(item)}</div>`).join('') : ''}
+        </div>
+      `;
+    }
+
+    function hotelListHtml(hotels) {
+      if (!hotels || !hotels.length) return '';
+      return `
+        <ul>
+          ${hotels.map((hotel) => `
+            <li>
+              <strong>${escapeHtml(hotel.name)}</strong>
+              ${hotel.distance ? ` · 距离约 ${Math.round(hotel.distance)}m` : ''}
+              ${hotel.address ? `<br>${escapeHtml(hotel.address)}` : ''}
+              ${hotel.tel ? `<br>电话：${escapeHtml(hotel.tel)}` : ''}
+              <br><span>${escapeHtml(hotel.source || '高德 POI 推荐')}</span>
+            </li>
+          `).join('')}
+        </ul>
+      `;
+    }
+
+    function createHotelInfo(routeId, day, hotel, isRecommendation) {
+      return `
+        <div class="info">
+          <span class="tag">${escapeHtml(routeLabels[routeId])}</span>
+          <span class="tag">${escapeHtml(day.day)} · 住宿</span>
+          <h3>${escapeHtml(hotel.name)}</h3>
+          <div>${escapeHtml(isRecommendation ? '高德 POI 推荐酒店' : '攻略参考住宿')}</div>
+          ${day.overnight ? `<div>落脚地：${escapeHtml(day.overnight)}</div>` : ''}
+          ${hotel.address ? `<div>地址：${escapeHtml(hotel.address)}</div>` : ''}
+          ${hotel.distance ? `<div>距当天落脚点约 ${Math.round(hotel.distance)}m</div>` : ''}
+          ${hotel.alternatives && hotel.alternatives.length ? `<div>备选：${hotel.alternatives.map(escapeHtml).join('、')}</div>` : ''}
+          <div>来源：${escapeHtml(hotel.source || '攻略')}</div>
+        </div>
+      `;
+    }
+
+    function formatDistance(meters) {
+      if (!Number.isFinite(meters)) return '未知';
+      if (meters >= 1000) return `${(meters / 1000).toFixed(1)} 公里`;
+      return `${Math.round(meters)} 米`;
+    }
+
+    function formatDuration(seconds) {
+      if (!Number.isFinite(seconds)) return '未知';
+      const minutes = Math.max(1, Math.round(seconds / 60));
+      const hours = Math.floor(minutes / 60);
+      const rest = minutes % 60;
+      if (!hours) return `${minutes} 分钟`;
+      return rest ? `${hours} 小时 ${rest} 分钟` : `${hours} 小时`;
+    }
+
+    function createSegmentInfo(routeId, day, segment, index) {
+      return `
+        <div class="info">
+          <span class="tag">${escapeHtml(routeLabels[routeId])}</span>
+          <span class="tag">${escapeHtml(day.day)} · 第 ${index + 1} 段</span>
+          <h3>${escapeHtml(segment.from)} → ${escapeHtml(segment.to)}</h3>
+          <div>距离：${formatDistance(segment.distanceMeters)}</div>
+          <div>预计车程：${formatDuration(segment.durationSeconds)}</div>
+          <div>路线策略：${escapeHtml(segment.strategyLabel || appState.data.routes[routeId].routeStrategy?.label || '攻略常走路线')}</div>
+          <div>数据来源：${segment.source === 'amap-driving' ? '高德驾车路径规划' : '直线降级显示'}</div>
+          ${segment.tolls ? `<div>过路费估算：${escapeHtml(segment.tolls)} 元</div>` : ''}
+          ${segment.warning ? `<div class="warning">${escapeHtml(segment.warning)}</div>` : ''}
+        </div>
+      `;
+    }
+
+    function summarizeDay(day) {
+      const segments = day.segments || [];
+      return {
+        distanceMeters: segments.reduce((sum, segment) => sum + (segment.distanceMeters || 0), 0),
+        durationSeconds: segments.reduce((sum, segment) => sum + (segment.durationSeconds || 0), 0),
+        tolls: segments.reduce((sum, segment) => sum + (segment.tolls || 0), 0),
+        segmentCount: segments.length,
+        stopCount: day.stops ? day.stops.length : 0
+      };
+    }
+
+    function dayRouteSummaryHtml(route, routeId, day) {
+      const summary = summarizeDay(day);
+      const hotelBlock = day.hotel
+        ? `<div><strong>住宿：</strong>${escapeHtml(day.hotel.name)}</div>`
+        : day.recommendedHotels && day.recommendedHotels.length
+          ? `<div><strong>高德住宿建议：</strong>${hotelListHtml(day.recommendedHotels)}</div>`
+          : day.overnight
+            ? `<div><strong>落脚地：</strong>${escapeHtml(day.overnight)}</div>`
+            : '';
+
+      return `
+        <div class="info">
+          <span class="tag">${escapeHtml(routeLabels[routeId])}</span>
+          <span class="tag">${escapeHtml(day.day)}</span>
+          <h3>${escapeHtml(day.title)}</h3>
+          <div>${escapeHtml(day.stops.map((stop) => stop.name).join(' → '))}</div>
+          ${summary.segmentCount ? `<div>高德道路：${formatDistance(summary.distanceMeters)} · ${formatDuration(summary.durationSeconds)}</div>` : ''}
+          <div>站点/路段：${summary.stopCount} 站 · ${summary.segmentCount} 段</div>
+          ${summary.tolls ? `<div>过路费估算：${Math.round(summary.tolls)} 元</div>` : ''}
+          <div>路线策略：${escapeHtml(route.routeStrategy?.label || '攻略常走路线')}</div>
+          <div>车程备注：${escapeHtml(day.distanceNote || '无')}</div>
+          ${day.meals ? `<div>用餐：${escapeHtml(day.meals)}</div>` : ''}
+          ${hotelBlock}
+          ${day.warnings ? day.warnings.map((item) => `<div class="warning">待核对：${escapeHtml(item)}</div>`).join('') : ''}
+        </div>
+      `;
+    }
+
+    function segmentInfoPosition(segment, event) {
+      if (event && event.lnglat) return event.lnglat;
+      const path = segment.path || [];
+      return path[Math.floor(path.length / 2)] || path[0] || appState.data.mapCenter;
+    }
+
+    function openInfo(content, position) {
+      if (!appState.infoWindow) {
+        appState.infoWindow = new appState.AMap.InfoWindow({
+          anchor: 'bottom-center',
+          offset: new appState.AMap.Pixel(0, -30),
+          autoMove: true,
+          closeWhenClickMap: true
+        });
+      }
+      appState.infoWindow.setContent(content);
+      appState.infoWindow.open(appState.map, position);
+    }
+
+    function setOverlayVisible(overlay, visible) {
+      overlay.__travelVisible = visible;
+      visible ? overlay.show() : overlay.hide();
+    }
+
+    function addRoute(routeId) {
+        const AMap = appState.AMap;
+        const route = appState.data.routes[routeId];
+        const overlays = [];
+
+      route.days.forEach((day) => {
+        (day.segments || []).forEach((segment, index) => {
+          const polyline = new AMap.Polyline({
+            path: segment.path,
+            isOutline: true,
+            outlineColor: segment.fallback ? '#fff7ed' : '#ffffff',
+            borderWeight: 3,
+            strokeColor: route.color,
+            strokeOpacity: segment.fallback ? 0.58 : routeId === 'guided' ? 0.92 : 0.86,
+            strokeWeight: routeId === 'guided' ? 6 : 5,
+            strokeStyle: segment.fallback || routeId === 'selfDrive' ? 'dashed' : 'solid',
+            strokeDasharray: segment.fallback ? [6, 6] : routeId === 'selfDrive' ? [10, 6] : undefined,
+            lineJoin: 'round',
+            lineCap: 'round',
+            showDir: true,
+            zIndex: routeId === 'guided' ? 56 : 54,
+            extData: { routeId, day: day.day, segmentIndex: index }
+          });
+          polyline.on('click', (event) => {
+            openInfo(createSegmentInfo(routeId, day, segment, index), segmentInfoPosition(segment, event));
+          });
+          overlays.push(polyline);
+        });
+
+        day.stops.forEach((stop, index) => {
+          const marker = new AMap.Marker({
+            position: stop.location,
+            content: markerHtml(routeClass[routeId], day.day),
+            offset: new AMap.Pixel(-15, -15),
+            title: `${routeLabels[routeId]} ${day.day} ${stop.name}`,
+            zIndex: routeId === 'guided' ? 120 : 110,
+            extData: { routeId, day: day.day, kind: 'stop', stopIndex: index }
+          });
+          marker.on('click', () => openInfo(createStopInfo(routeId, day, stop, index), stop.location));
+          overlays.push(marker);
+        });
+
+        if (day.hotel) {
+          const marker = new AMap.Marker({
+            position: day.hotel.location,
+            content: markerHtml(`${routeClass[routeId]} hotel`, '宿'),
+            offset: new AMap.Pixel(-17, -17),
+            title: `${routeLabels[routeId]} ${day.day} 住宿 ${day.hotel.name}`,
+            zIndex: 150,
+            extData: { routeId, day: day.day, kind: 'hotel' }
+          });
+          marker.on('click', () => openInfo(createHotelInfo(routeId, day, day.hotel, false), day.hotel.location));
+          appState.overlays.hotels.push(marker);
+        }
+
+        if (Array.isArray(day.recommendedHotels)) {
+          day.recommendedHotels.forEach((hotel, hotelIndex) => {
+            const marker = new AMap.Marker({
+              position: hotel.location,
+              content: markerHtml(`${routeClass[routeId]} hotel`, `宿${hotelIndex + 1}`),
+              offset: new AMap.Pixel(-19, -17),
+              title: `${routeLabels[routeId]} ${day.day} 推荐酒店 ${hotel.name}`,
+              zIndex: 145,
+              extData: { routeId, day: day.day, kind: 'hotel', hotelIndex }
+            });
+            marker.on('click', () => openInfo(createHotelInfo(routeId, day, hotel, true), hotel.location));
+            appState.overlays.hotels.push(marker);
+          });
+        }
+      });
+
+      appState.overlays[routeId] = overlays;
+      appState.map.add(overlays);
+    }
+
+    function applyVisibility() {
+      ['guided', 'selfDrive'].forEach((routeId) => {
+        const visible = routeVisible(routeId);
+        appState.overlays[routeId].forEach((overlay) => {
+          const extData = overlay.getExtData ? overlay.getExtData() : null;
+          const dayMatches = !appState.focusedDay
+            || (extData && extData.routeId === appState.focusedDay.routeId && extData.day === appState.focusedDay.day);
+          setOverlayVisible(overlay, Boolean(visible && dayMatches));
+        });
+      });
+
+      appState.overlays.hotels.forEach((overlay) => {
+        const extData = overlay.getExtData ? overlay.getExtData() : null;
+        const title = overlay.getTitle ? overlay.getTitle() : '';
+        const isGuided = title.includes(routeLabels.guided);
+        const isSelf = title.includes(routeLabels.selfDrive);
+        const routeOk = (isGuided && routeVisible('guided')) || (isSelf && routeVisible('selfDrive'));
+        const dayMatches = !appState.focusedDay
+          || (extData && extData.routeId === appState.focusedDay.routeId && extData.day === appState.focusedDay.day);
+        setOverlayVisible(overlay, Boolean(appState.showHotels && routeOk && dayMatches));
+      });
+
+      document.querySelectorAll('[data-mode]').forEach((button) => {
+        button.classList.toggle('active', button.dataset.mode === appState.mode);
+      });
+      document.getElementById('toggle-hotels').classList.toggle('active', appState.showHotels);
+      document.getElementById('toggle-satellite').classList.toggle('active', appState.satellite);
+      renderDayList();
+    }
+
+    function clearFocusedDay() {
+      appState.focusedDay = null;
+      if (appState.selectedCard) {
+        appState.selectedCard.classList.remove('selected');
+        appState.selectedCard = null;
+      }
+    }
+
+    function fitVisible() {
+      const hadFocusedDay = Boolean(appState.focusedDay);
+      if (hadFocusedDay) {
+        clearFocusedDay();
+        applyVisibility();
+      }
+
+      const points = [];
+      const visible = [];
+      ['guided', 'selfDrive'].forEach((routeId) => {
+        if (routeVisible(routeId)) {
+          points.push(...appState.data.routes[routeId].path);
+          visible.push(...appState.overlays[routeId].filter((overlay) => overlay.getPath || overlay.getPosition));
+        }
+      });
+      if (appState.showHotels) {
+        const visibleHotels = appState.overlays.hotels.filter((overlay) => {
+          const title = overlay.getTitle ? overlay.getTitle() : '';
+          return (title.includes(routeLabels.guided) && routeVisible('guided'))
+            || (title.includes(routeLabels.selfDrive) && routeVisible('selfDrive'));
+        });
+        visible.push(...visibleHotels);
+        visibleHotels.forEach((overlay) => {
+          const position = overlay.getPosition && overlay.getPosition();
+          if (position) points.push([position.lng, position.lat]);
+        });
+      }
+
+      if (points.length) {
+        const lngs = points.map((item) => item[0]);
+        const lats = points.map((item) => item[1]);
+        const bounds = new appState.AMap.Bounds(
+          [Math.min(...lngs), Math.min(...lats)],
+          [Math.max(...lngs), Math.max(...lats)]
+        );
+        appState.map.setBounds(bounds, true, [56, 56, 470, 56]);
+        setTimeout(() => {
+          if (appState.map.getZoom() < 6) appState.map.setZoom(6);
+        }, 400);
+      } else {
+        appState.map.setFitView(visible, false, [48, 48, 48, 48], 6);
+      }
+
+      if (hadFocusedDay) {
+        setStatus('已恢复当前路线全览。');
+      }
+    }
+
+    function renderStats() {
+      const guided = appState.data.routes.guided.days;
+      const self = appState.data.routes.selfDrive.days;
+      const guidedHotels = guided.filter((day) => day.hotel).length;
+      const selfHotels = self.reduce((sum, day) => sum + (day.recommendedHotels ? day.recommendedHotels.length : 0), 0);
+      const routeKm = (days) => Math.round(days.flatMap((day) => day.segments || []).reduce((sum, segment) => sum + (segment.distanceMeters || 0), 0) / 1000);
+      document.getElementById('stats').innerHTML = `
+        <div class="stat"><strong>${guided.length} 天</strong><span>旅游团约 ${routeKm(guided)}km，${guidedHotels} 晚攻略住宿</span></div>
+        <div class="stat"><strong>${self.length} 天</strong><span>自驾约 ${routeKm(self)}km，${selfHotels} 个高德住宿建议</span></div>
+      `;
+    }
+
+    function renderDayList() {
+      const container = document.getElementById('day-list');
+      const sections = ['guided', 'selfDrive']
+        .filter((routeId) => routeVisible(routeId))
+        .map((routeId) => {
+          const route = appState.data.routes[routeId];
+          const cards = route.days.map((day) => {
+            const hotelText = day.hotel
+              ? `住宿：${day.hotel.name}`
+              : day.recommendedHotels && day.recommendedHotels.length
+                ? `住宿建议：${day.recommendedHotels.slice(0, 2).map((hotel) => hotel.name).join(' / ')}`
+                : day.overnight
+                  ? `落脚地：${day.overnight}`
+                  : '';
+            return `
+              <button type="button" class="day-card ${routeId}${appState.focusedDay && appState.focusedDay.routeId === routeId && appState.focusedDay.day === day.day ? ' selected' : ''}" data-route="${routeId}" data-day="${day.day}">
+                <h2>${escapeHtml(day.day)} ${day.date ? `(${escapeHtml(day.date)}) ` : ''}${escapeHtml(day.title)}</h2>
+                <p>${escapeHtml(day.stops.map((stop) => stop.name).join(' → '))}</p>
+                ${hotelText ? `<div class="hotel-line">${escapeHtml(hotelText)}</div>` : ''}
+              </button>
+            `;
+          }).join('');
+          return `
+            <div class="route-section">
+              <div class="route-title">${escapeHtml(route.name)} <span>${route.days.length} 天</span></div>
+              ${cards}
+            </div>
+          `;
+        }).join('');
+      container.innerHTML = sections;
+      container.querySelectorAll('.day-card').forEach((card) => {
+        card.addEventListener('click', () => {
+          if (appState.selectedCard) appState.selectedCard.classList.remove('selected');
+          appState.selectedCard = card;
+          card.classList.add('selected');
+          focusDay(card.dataset.route, card.dataset.day);
+        });
+      });
+    }
+
+    function focusDay(routeId, dayId) {
+      const route = appState.data.routes[routeId];
+      const day = route.days.find((item) => item.day === dayId);
+      if (!day) return;
+
+      appState.focusedDay = { routeId, day: dayId };
+      applyVisibility();
+
+      const positions = (day.segments || []).flatMap((segment) => segment.path || []);
+      positions.push(...day.stops.map((stop) => stop.location));
+      if (day.hotel) positions.push(day.hotel.location);
+      if (Array.isArray(day.recommendedHotels)) {
+        positions.push(...day.recommendedHotels.map((hotel) => hotel.location));
+      }
+      const lngs = positions.map((item) => item[0]);
+      const lats = positions.map((item) => item[1]);
+      const bounds = new appState.AMap.Bounds(
+        [Math.min(...lngs), Math.min(...lats)],
+        [Math.max(...lngs), Math.max(...lats)]
+      );
+      appState.map.setBounds(bounds, true, [90, 90, 90, 90]);
+
+      const firstStop = day.stops[0];
+      const summary = summarizeDay(day);
+      setStatus(`仅显示：${routeLabels[routeId]} ${day.day}，${summary.stopCount} 站、${summary.segmentCount} 段，高德道路 ${formatDistance(summary.distanceMeters)}。`);
+      openInfo(dayRouteSummaryHtml(route, routeId, day), firstStop.location);
+    }
+
+    function bindControls() {
+      document.querySelectorAll('[data-mode]').forEach((button) => {
+        button.addEventListener('click', () => {
+          appState.mode = button.dataset.mode;
+          clearFocusedDay();
+          applyVisibility();
+          fitVisible();
+        });
+      });
+
+      document.getElementById('toggle-hotels').addEventListener('click', () => {
+        appState.showHotels = !appState.showHotels;
+        applyVisibility();
+      });
+
+      document.getElementById('toggle-satellite').addEventListener('click', () => {
+        appState.satellite = !appState.satellite;
+        if (appState.satellite) {
+          appState.map.add([appState.overlays.satellite, appState.overlays.roadNet]);
+        } else {
+          appState.map.remove([appState.overlays.satellite, appState.overlays.roadNet]);
+        }
+        document.getElementById('toggle-satellite').classList.toggle('active', appState.satellite);
+      });
+
+      document.getElementById('fit-view').addEventListener('click', fitVisible);
+    }
+
+    function bindMapWheelFallback() {
+      const container = document.querySelector('.map-wrap');
+      let lastWheelAt = 0;
+
+      container.addEventListener('wheel', (event) => {
+        if (!appState.map) return;
+        const now = Date.now();
+        if (now - lastWheelAt < 120) {
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+        }
+
+        lastWheelAt = now;
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.deltaY < 0) {
+          appState.map.zoomIn();
+        } else if (event.deltaY > 0) {
+          appState.map.zoomOut();
+        }
+      }, { passive: false, capture: true });
+    }
+
+    async function loadData() {
+      const response = await fetch('./two-xinjiang-travel-data.json', { cache: 'no-store' });
+      if (!response.ok) throw new Error(`行程数据加载失败：${response.status}`);
+      return response.json();
+    }
+
+    async function init() {
+      try {
+        const config = window.TRAVEL_AMAP_CONFIG || {};
+        if (!config.jsApiKey || !config.securityJsCode) {
+          throw new Error('缺少高德 JSAPI key 或安全密钥配置');
+        }
+
+        window._AMapSecurityConfig = {
+          securityJsCode: config.securityJsCode
+        };
+
+        const [data, AMap] = await Promise.all([
+          loadData(),
+          AMapLoader.load({
+            key: config.jsApiKey,
+            version: '2.0',
+            plugins: ['AMap.Scale', 'AMap.ToolBar', 'AMap.ControlBar']
+          })
+        ]);
+
+        appState.data = data;
+        appState.AMap = AMap;
+        appState.map = new AMap.Map('map', {
+          viewMode: '3D',
+          zoom: 6,
+          center: data.mapCenter,
+          pitch: 38,
+          rotation: 0,
+          mapStyle: 'amap://styles/normal',
+          zooms: [4, 18],
+          dragEnable: true,
+          zoomEnable: true,
+          scrollWheel: true,
+          doubleClickZoom: true,
+          keyboardEnable: true,
+          pitchEnable: true,
+          rotateEnable: true
+        });
+
+        appState.map.add(new AMap.TileLayer());
+        appState.map.addControl(new AMap.Scale());
+        appState.map.addControl(new AMap.ToolBar({ position: 'RT' }));
+        appState.map.addControl(new AMap.ControlBar({ position: { right: '14px', top: '76px' } }));
+        appState.overlays.satellite = new AMap.TileLayer.Satellite();
+        appState.overlays.roadNet = new AMap.TileLayer.RoadNet();
+
+        addRoute('guided');
+        addRoute('selfDrive');
+        appState.map.add(appState.overlays.hotels);
+
+        bindControls();
+        bindMapWheelFallback();
+        renderStats();
+        applyVisibility();
+        fitVisible();
+        setStatus('已加载：旅游团路线、图片自驾路线、真实驾车道路、攻略住宿和高德 POI 推荐酒店。');
+      } catch (error) {
+        console.error(error);
+        setStatus(error.message || '地图初始化失败', true);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
