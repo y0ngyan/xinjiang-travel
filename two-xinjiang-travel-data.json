@@ -1,8 +1,12 @@
 {
-  "generatedAt": "2026-06-01T13:57:35.350Z",
+  "generatedAt": "2026-06-01T14:52:34.127Z",
   "mapCenter": [
     84.8,
     44.9
+  ],
+  "routeOrder": [
+    "guided",
+    "selfDrive"
   ],
   "notes": [
     "旅游团住宿来自攻略原文参考酒店。",
@@ -12,9 +16,13 @@
   "routes": {
     "guided": {
       "id": "guided",
+      "label": "旅游团",
       "name": "旅游团 11 日北疆大环线",
       "color": "#176B87",
       "hotelColor": "#B42318",
+      "markerClass": "route-guided",
+      "routeKind": "guided",
+      "recommendHotels": false,
       "routeStrategy": {
         "id": "travel-common",
         "source": "amap-driving",
@@ -341061,9 +341069,13 @@
     },
     "selfDrive": {
       "id": "selfDrive",
+      "label": "自驾",
       "name": "图片自驾 14 日深度路线",
       "color": "#B54708",
       "hotelColor": "#6A329F",
+      "markerClass": "route-self-drive",
+      "routeKind": "selfDrive",
+      "recommendHotels": true,
       "routeStrategy": {
         "id": "travel-common",
         "source": "amap-driving",

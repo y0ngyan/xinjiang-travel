@@ -88,7 +88,7 @@
 
     .segmented {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
       gap: 6px;
     }
 
@@ -170,14 +170,6 @@
       flex: none;
     }
 
-    .legend-dot.guided {
-      background: var(--guided);
-    }
-
-    .legend-dot.self {
-      background: var(--self);
-    }
-
     .legend-dot.hotel {
       width: 13px;
       height: 13px;
@@ -221,10 +213,6 @@
       background: #fff;
       text-align: left;
       cursor: pointer;
-    }
-
-    .day-card.selfDrive {
-      border-left-color: var(--self);
     }
 
     .day-card:hover,
@@ -299,23 +287,11 @@
       cursor: pointer;
     }
 
-    .marker.guided {
-      background: var(--guided);
-    }
-
-    .marker.selfDrive {
-      background: var(--self);
-    }
-
     .marker.hotel {
       min-width: 34px;
       border-radius: 8px;
       background: var(--hotel);
       font-size: 13px;
-    }
-
-    .marker.selfDrive.hotel {
-      background: #6a329f;
     }
 
     .info {
@@ -397,9 +373,6 @@
 
       <section class="controls" aria-label="地图控制">
         <div class="segmented" role="group" aria-label="路线显示">
-          <button type="button" class="active" data-mode="both">双路线</button>
-          <button type="button" data-mode="guided">旅游团</button>
-          <button type="button" data-mode="selfDrive">自驾</button>
         </div>
         <div class="secondary-actions" role="group" aria-label="辅助显示">
           <button type="button" class="active" id="toggle-hotels">住宿</button>
@@ -407,9 +380,7 @@
           <button type="button" id="fit-view">全览</button>
         </div>
         <div class="stats" id="stats"></div>
-        <div class="legend">
-          <span class="legend-item"><span class="legend-dot guided"></span>旅游团景点</span>
-          <span class="legend-item"><span class="legend-dot self"></span>自驾景点</span>
+        <div class="legend" id="legend">
           <span class="legend-item"><span class="legend-dot hotel"></span>住宿/推荐酒店</span>
         </div>
       </section>
@@ -425,15 +396,15 @@
 
   <script>
     const appState = {
-      mode: 'both',
+      mode: 'all',
       showHotels: true,
       satellite: false,
       data: null,
       AMap: null,
       map: null,
+      routeIds: [],
       overlays: {
-        guided: [],
-        selfDrive: [],
+        routes: {},
         hotels: [],
         satellite: null,
         roadNet: null
@@ -441,16 +412,6 @@
       selectedCard: null,
       focusedDay: null,
       infoWindow: null
-    };
-
-    const routeLabels = {
-      guided: '旅游团',
-      selfDrive: '自驾'
-    };
-
-    const routeClass = {
-      guided: 'guided',
-      selfDrive: 'selfDrive'
     };
 
     function escapeHtml(value) {
@@ -470,17 +431,46 @@
     }
 
     function routeVisible(routeId) {
-      return appState.mode === 'both' || appState.mode === routeId;
+      return appState.mode === 'all' || appState.mode === routeId;
     }
 
-    function markerHtml(className, text) {
-      return `<div class="marker ${className}">${escapeHtml(text)}</div>`;
+    function routeLabel(routeId) {
+      return appState.data?.routes?.[routeId]?.label || routeId;
+    }
+
+    function markerClass(routeId) {
+      return appState.data?.routes?.[routeId]?.markerClass || `route-${routeId}`;
+    }
+
+    function routeHotelColor(routeId) {
+      return appState.data?.routes?.[routeId]?.hotelColor || '#9b1c1c';
+    }
+
+    function routeLineStyle(routeId, segment) {
+      const routeIndex = Math.max(0, appState.routeIds.indexOf(routeId));
+      if (segment?.fallback) return { strokeStyle: 'dashed', strokeDasharray: [6, 6] };
+      return routeIndex % 2 === 0
+        ? { strokeStyle: 'solid', strokeDasharray: undefined }
+        : { strokeStyle: 'dashed', strokeDasharray: [10, 6] };
+    }
+
+    function routeStrokeWeight(routeId) {
+      return Math.max(4, 6 - Math.max(0, appState.routeIds.indexOf(routeId)));
+    }
+
+    function routeZIndex(routeId) {
+      return 56 - Math.max(0, appState.routeIds.indexOf(routeId)) * 2;
+    }
+
+    function markerHtml(className, text, backgroundColor) {
+      const style = backgroundColor ? ` style="background:${escapeHtml(backgroundColor)}"` : '';
+      return `<div class="marker ${className}"${style}>${escapeHtml(text)}</div>`;
     }
 
     function createStopInfo(routeId, day, stop, index) {
       return `
         <div class="info">
-          <span class="tag">${escapeHtml(routeLabels[routeId])}</span>
+          <span class="tag">${escapeHtml(routeLabel(routeId))}</span>
           <span class="tag">${escapeHtml(day.day)} · 第 ${index + 1} 站</span>
           <h3>${escapeHtml(stop.name)}</h3>
           <div>${escapeHtml(day.title)}</div>
@@ -512,7 +502,7 @@
     function createHotelInfo(routeId, day, hotel, isRecommendation) {
       return `
         <div class="info">
-          <span class="tag">${escapeHtml(routeLabels[routeId])}</span>
+          <span class="tag">${escapeHtml(routeLabel(routeId))}</span>
           <span class="tag">${escapeHtml(day.day)} · 住宿</span>
           <h3>${escapeHtml(hotel.name)}</h3>
           <div>${escapeHtml(isRecommendation ? '高德 POI 推荐酒店' : '攻略参考住宿')}</div>
@@ -543,7 +533,7 @@
     function createSegmentInfo(routeId, day, segment, index) {
       return `
         <div class="info">
-          <span class="tag">${escapeHtml(routeLabels[routeId])}</span>
+          <span class="tag">${escapeHtml(routeLabel(routeId))}</span>
           <span class="tag">${escapeHtml(day.day)} · 第 ${index + 1} 段</span>
           <h3>${escapeHtml(segment.from)} → ${escapeHtml(segment.to)}</h3>
           <div>距离：${formatDistance(segment.distanceMeters)}</div>
@@ -579,7 +569,7 @@
 
       return `
         <div class="info">
-          <span class="tag">${escapeHtml(routeLabels[routeId])}</span>
+          <span class="tag">${escapeHtml(routeLabel(routeId))}</span>
           <span class="tag">${escapeHtml(day.day)}</span>
           <h3>${escapeHtml(day.title)}</h3>
           <div>${escapeHtml(day.stops.map((stop) => stop.name).join(' → '))}</div>
@@ -619,6 +609,32 @@
       visible ? overlay.show() : overlay.hide();
     }
 
+    function renderRouteModeButtons() {
+      const container = document.querySelector('.segmented');
+      const allLabel = appState.routeIds.length > 2 ? '全部路线' : '双路线';
+      const buttons = [
+        `<button type="button" class="active" data-mode="all">${escapeHtml(allLabel)}</button>`,
+        ...appState.routeIds.map((routeId) => {
+          const route = appState.data.routes[routeId];
+          return `<button type="button" data-mode="${escapeHtml(routeId)}">${escapeHtml(route.label || route.name)}</button>`;
+        })
+      ];
+      container.innerHTML = buttons.join('');
+    }
+
+    function renderLegend() {
+      const container = document.getElementById('legend');
+      const routeItems = appState.routeIds.map((routeId) => {
+        const route = appState.data.routes[routeId];
+        return `
+          <span class="legend-item" data-route-legend="${escapeHtml(routeId)}">
+            <span class="legend-dot" style="background:${escapeHtml(route.color)}"></span>${escapeHtml(route.label || route.name)}景点
+          </span>
+        `;
+      }).join('');
+      container.innerHTML = `${routeItems}<span class="legend-item"><span class="legend-dot hotel"></span>住宿/推荐酒店</span>`;
+    }
+
     function addRoute(routeId) {
         const AMap = appState.AMap;
         const route = appState.data.routes[routeId];
@@ -626,20 +642,21 @@
 
       route.days.forEach((day) => {
         (day.segments || []).forEach((segment, index) => {
+          const lineStyle = routeLineStyle(routeId, segment);
           const polyline = new AMap.Polyline({
             path: segment.path,
             isOutline: true,
             outlineColor: segment.fallback ? '#fff7ed' : '#ffffff',
             borderWeight: 3,
             strokeColor: route.color,
-            strokeOpacity: segment.fallback ? 0.58 : routeId === 'guided' ? 0.92 : 0.86,
-            strokeWeight: routeId === 'guided' ? 6 : 5,
-            strokeStyle: segment.fallback || routeId === 'selfDrive' ? 'dashed' : 'solid',
-            strokeDasharray: segment.fallback ? [6, 6] : routeId === 'selfDrive' ? [10, 6] : undefined,
+            strokeOpacity: segment.fallback ? 0.58 : 0.9,
+            strokeWeight: routeStrokeWeight(routeId),
+            strokeStyle: lineStyle.strokeStyle,
+            strokeDasharray: lineStyle.strokeDasharray,
             lineJoin: 'round',
             lineCap: 'round',
             showDir: true,
-            zIndex: routeId === 'guided' ? 56 : 54,
+            zIndex: routeZIndex(routeId),
             extData: { routeId, day: day.day, segmentIndex: index }
           });
           polyline.on('click', (event) => {
@@ -651,10 +668,10 @@
         day.stops.forEach((stop, index) => {
           const marker = new AMap.Marker({
             position: stop.location,
-            content: markerHtml(routeClass[routeId], day.day),
+            content: markerHtml(markerClass(routeId), day.day, route.color),
             offset: new AMap.Pixel(-15, -15),
-            title: `${routeLabels[routeId]} ${day.day} ${stop.name}`,
-            zIndex: routeId === 'guided' ? 120 : 110,
+            title: `${routeLabel(routeId)} ${day.day} ${stop.name}`,
+            zIndex: 120 - Math.max(0, appState.routeIds.indexOf(routeId)) * 5,
             extData: { routeId, day: day.day, kind: 'stop', stopIndex: index }
           });
           marker.on('click', () => openInfo(createStopInfo(routeId, day, stop, index), stop.location));
@@ -664,9 +681,9 @@
         if (day.hotel) {
           const marker = new AMap.Marker({
             position: day.hotel.location,
-            content: markerHtml(`${routeClass[routeId]} hotel`, '宿'),
+            content: markerHtml(`${markerClass(routeId)} hotel`, '宿', routeHotelColor(routeId)),
             offset: new AMap.Pixel(-17, -17),
-            title: `${routeLabels[routeId]} ${day.day} 住宿 ${day.hotel.name}`,
+            title: `${routeLabel(routeId)} ${day.day} 住宿 ${day.hotel.name}`,
             zIndex: 150,
             extData: { routeId, day: day.day, kind: 'hotel' }
           });
@@ -678,9 +695,9 @@
           day.recommendedHotels.forEach((hotel, hotelIndex) => {
             const marker = new AMap.Marker({
               position: hotel.location,
-              content: markerHtml(`${routeClass[routeId]} hotel`, `宿${hotelIndex + 1}`),
+              content: markerHtml(`${markerClass(routeId)} hotel`, `宿${hotelIndex + 1}`, routeHotelColor(routeId)),
               offset: new AMap.Pixel(-19, -17),
-              title: `${routeLabels[routeId]} ${day.day} 推荐酒店 ${hotel.name}`,
+              title: `${routeLabel(routeId)} ${day.day} 推荐酒店 ${hotel.name}`,
               zIndex: 145,
               extData: { routeId, day: day.day, kind: 'hotel', hotelIndex }
             });
@@ -690,14 +707,14 @@
         }
       });
 
-      appState.overlays[routeId] = overlays;
+      appState.overlays.routes[routeId] = overlays;
       appState.map.add(overlays);
     }
 
     function applyVisibility() {
-      ['guided', 'selfDrive'].forEach((routeId) => {
+      appState.routeIds.forEach((routeId) => {
         const visible = routeVisible(routeId);
-        appState.overlays[routeId].forEach((overlay) => {
+        appState.overlays.routes[routeId].forEach((overlay) => {
           const extData = overlay.getExtData ? overlay.getExtData() : null;
           const dayMatches = !appState.focusedDay
             || (extData && extData.routeId === appState.focusedDay.routeId && extData.day === appState.focusedDay.day);
@@ -707,10 +724,7 @@
 
       appState.overlays.hotels.forEach((overlay) => {
         const extData = overlay.getExtData ? overlay.getExtData() : null;
-        const title = overlay.getTitle ? overlay.getTitle() : '';
-        const isGuided = title.includes(routeLabels.guided);
-        const isSelf = title.includes(routeLabels.selfDrive);
-        const routeOk = (isGuided && routeVisible('guided')) || (isSelf && routeVisible('selfDrive'));
+        const routeOk = extData && routeVisible(extData.routeId);
         const dayMatches = !appState.focusedDay
           || (extData && extData.routeId === appState.focusedDay.routeId && extData.day === appState.focusedDay.day);
         setOverlayVisible(overlay, Boolean(appState.showHotels && routeOk && dayMatches));
@@ -741,17 +755,16 @@
 
       const points = [];
       const visible = [];
-      ['guided', 'selfDrive'].forEach((routeId) => {
+      appState.routeIds.forEach((routeId) => {
         if (routeVisible(routeId)) {
           points.push(...appState.data.routes[routeId].path);
-          visible.push(...appState.overlays[routeId].filter((overlay) => overlay.getPath || overlay.getPosition));
+          visible.push(...appState.overlays.routes[routeId].filter((overlay) => overlay.getPath || overlay.getPosition));
         }
       });
       if (appState.showHotels) {
         const visibleHotels = appState.overlays.hotels.filter((overlay) => {
-          const title = overlay.getTitle ? overlay.getTitle() : '';
-          return (title.includes(routeLabels.guided) && routeVisible('guided'))
-            || (title.includes(routeLabels.selfDrive) && routeVisible('selfDrive'));
+          const extData = overlay.getExtData ? overlay.getExtData() : null;
+          return extData && routeVisible(extData.routeId);
         });
         visible.push(...visibleHotels);
         visibleHotels.forEach((overlay) => {
@@ -781,20 +794,22 @@
     }
 
     function renderStats() {
-      const guided = appState.data.routes.guided.days;
-      const self = appState.data.routes.selfDrive.days;
-      const guidedHotels = guided.filter((day) => day.hotel).length;
-      const selfHotels = self.reduce((sum, day) => sum + (day.recommendedHotels ? day.recommendedHotels.length : 0), 0);
       const routeKm = (days) => Math.round(days.flatMap((day) => day.segments || []).reduce((sum, segment) => sum + (segment.distanceMeters || 0), 0) / 1000);
+      const cards = appState.routeIds.map((routeId) => {
+        const route = appState.data.routes[routeId];
+        const hotelCount = route.days.filter((day) => day.hotel).length
+          + route.days.reduce((sum, day) => sum + (day.recommendedHotels ? day.recommendedHotels.length : 0), 0);
+        const hotelLabel = route.recommendHotels ? '高德住宿建议' : '攻略住宿';
+        return `<div class="stat"><strong>${route.days.length} 天</strong><span>${escapeHtml(route.label || route.name)}约 ${routeKm(route.days)}km，${hotelCount} ${hotelLabel}</span></div>`;
+      }).join('');
       document.getElementById('stats').innerHTML = `
-        <div class="stat"><strong>${guided.length} 天</strong><span>旅游团约 ${routeKm(guided)}km，${guidedHotels} 晚攻略住宿</span></div>
-        <div class="stat"><strong>${self.length} 天</strong><span>自驾约 ${routeKm(self)}km，${selfHotels} 个高德住宿建议</span></div>
+        ${cards}
       `;
     }
 
     function renderDayList() {
       const container = document.getElementById('day-list');
-      const sections = ['guided', 'selfDrive']
+      const sections = appState.routeIds
         .filter((routeId) => routeVisible(routeId))
         .map((routeId) => {
           const route = appState.data.routes[routeId];
@@ -807,7 +822,7 @@
                   ? `落脚地：${day.overnight}`
                   : '';
             return `
-              <button type="button" class="day-card ${routeId}${appState.focusedDay && appState.focusedDay.routeId === routeId && appState.focusedDay.day === day.day ? ' selected' : ''}" data-route="${routeId}" data-day="${day.day}">
+              <button type="button" class="day-card ${markerClass(routeId)}${appState.focusedDay && appState.focusedDay.routeId === routeId && appState.focusedDay.day === day.day ? ' selected' : ''}" style="border-left-color:${escapeHtml(route.color)}" data-route="${routeId}" data-day="${day.day}">
                 <h2>${escapeHtml(day.day)} ${day.date ? `(${escapeHtml(day.date)}) ` : ''}${escapeHtml(day.title)}</h2>
                 <p>${escapeHtml(day.stops.map((stop) => stop.name).join(' → '))}</p>
                 ${hotelText ? `<div class="hotel-line">${escapeHtml(hotelText)}</div>` : ''}
@@ -856,7 +871,7 @@
 
       const firstStop = day.stops[0];
       const summary = summarizeDay(day);
-      setStatus(`仅显示：${routeLabels[routeId]} ${day.day}，${summary.stopCount} 站、${summary.segmentCount} 段，高德道路 ${formatDistance(summary.distanceMeters)}。`);
+      setStatus(`仅显示：${routeLabel(routeId)} ${day.day}，${summary.stopCount} 站、${summary.segmentCount} 段，高德道路 ${formatDistance(summary.distanceMeters)}。`);
       openInfo(dayRouteSummaryHtml(route, routeId, day), firstStop.location);
     }
 
@@ -939,7 +954,15 @@
         ]);
 
         appState.data = data;
+        appState.routeIds = Array.isArray(data.routeOrder) && data.routeOrder.length
+          ? data.routeOrder.filter((routeId) => data.routes[routeId])
+          : Object.keys(data.routes || {});
+        appState.routeIds.forEach((routeId) => {
+          appState.overlays.routes[routeId] = [];
+        });
         appState.AMap = AMap;
+        renderRouteModeButtons();
+        renderLegend();
         appState.map = new AMap.Map('map', {
           viewMode: '3D',
           zoom: 6,
@@ -964,8 +987,7 @@
         appState.overlays.satellite = new AMap.TileLayer.Satellite();
         appState.overlays.roadNet = new AMap.TileLayer.RoadNet();
 
-        addRoute('guided');
-        addRoute('selfDrive');
+        appState.routeIds.forEach(addRoute);
         appState.map.add(appState.overlays.hotels);
 
         bindControls();
