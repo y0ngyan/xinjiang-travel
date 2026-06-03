@@ -492,6 +492,7 @@
       focusedDay: null,
       infoWindow: null
     };
+    window.__travelAppState = appState;
 
     function escapeHtml(value) {
       return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -642,6 +643,11 @@
     }
 
     function createSegmentInfo(routeId, day, segment, index) {
+      const sourceLabel = {
+        'amap-driving': '高德驾车路径规划',
+        'manual-scenic-route': '攻略景观路线校准',
+        'fallback-direct-line': '直线降级显示'
+      }[segment.source] || segment.source || '未知';
       return `
         <div class="info">
           <span class="tag">${escapeHtml(routeLabel(routeId))}</span>
@@ -650,7 +656,7 @@
           <div>距离：${formatDistance(segment.distanceMeters)}</div>
           <div>预计车程：${formatDuration(segment.durationSeconds)}</div>
           <div>路线策略：${escapeHtml(segment.strategyLabel || appState.data.routes[routeId].routeStrategy?.label || '攻略常走路线')}</div>
-          <div>数据来源：${segment.source === 'amap-driving' ? '高德驾车路径规划' : '直线降级显示'}</div>
+          <div>数据来源：${escapeHtml(sourceLabel)}</div>
           ${segment.tolls ? `<div>过路费估算：${escapeHtml(segment.tolls)} 元</div>` : ''}
           ${segment.warning ? `<div class="warning">${escapeHtml(segment.warning)}</div>` : ''}
         </div>
